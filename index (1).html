@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- talKing Chess - © 2026 mr. B. All rights reserved. -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>talKing Chess</title>
+<style>
+:root{--cream:#fff6e5;--gold:#c9a227;--brown:#4a3426;--navy:#1b2a4a;--light:#f4f4f4;--dark:#6e6e6e}
+body.forest{--light:#ecdfc2;--dark:#6f8a55}
+body.ocean{--light:#e3f0f7;--dark:#5b8fb0}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--cream);color:var(--brown);font-family:system-ui,sans-serif}
+
+/* arany sáv + fogaskerék */
+#topbar{position:relative;height:64px;display:flex;align-items:center;padding:0 14px;background:linear-gradient(#ecd49a,#cfa564);border-bottom:3px solid #b8893f}
+.round{width:46px;height:46px;border-radius:50%;border:3px solid #b8893f;background:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+#mini{position:absolute;left:50%;transform:translateX(-50%);font:800 22px sans-serif;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);white-space:nowrap}
+#mini b{color:var(--navy);text-shadow:none}
+
+.screen{display:flex;flex-direction:column;align-items:center;padding:14px}
+
+/* menü */
+#logo{background:#fff;border:4px solid var(--gold);border-radius:28px;padding:20px 28px 12px;margin:20px 0 24px;text-align:center;font:800 44px sans-serif;line-height:1}
+#logo .g{color:#b8860b}
+#logo .k{position:relative;color:var(--navy)}
+#logo .k i{position:absolute;left:50%;top:-.75em;transform:translateX(-50%);font-size:.5em;font-style:normal}
+#logo .n{color:var(--navy)}
+#logo small{display:block;margin-top:8px;font:700 15px sans-serif;letter-spacing:6px;color:var(--brown)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:min(92vw,440px)}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 8px;background:#fff;border:4px solid var(--gold);border-radius:24px;box-shadow:0 3px 0 #e1c26a;font:700 20px sans-serif;color:var(--brown);cursor:pointer}
+.tile b{font-size:44px;font-weight:400;line-height:1.1}
+.tile.wide{grid-column:1 / 3;flex-direction:row;justify-content:center;gap:18px}
+.tile:active{transform:translateY(2px);box-shadow:none}
+
+/* játék */
+#status{font:600 16px sans-serif;margin-top:8px;min-height:22px}
+#wrap{position:relative;width:min(92vw,480px);aspect-ratio:1;margin:60px 0}
+#board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:100%;height:100%;border:4px solid var(--gold)}
+.sq{display:flex;align-items:center;justify-content:center;font-size:min(9vw,48px);line-height:1;cursor:pointer;user-select:none;min-width:0;min-height:0;overflow:hidden}
+.light{background:var(--light)}
+.dark{background:var(--dark)}
+.wp{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 3px #000,0 0 3px #000}
+.bp{color:#111;text-shadow:0 0 2px #fff,0 0 2px #fff}
+.sel{outline:4px solid var(--gold);outline-offset:-4px}
+.dot{box-shadow:inset 0 0 0 100px rgba(201,162,39,.45)}
+
+/* beszédbuborék */
+.bub{position:absolute;z-index:5;pointer-events:none;white-space:nowrap;background:#fff;color:#222;font:700 15px sans-serif;padding:7px 12px;border:3px solid var(--gold);border-radius:14px;transform:translateY(-100%)}
+.bub::after{content:"";position:absolute;left:10px;bottom:-14px;border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid var(--gold)}
+.bub.flip{transform:translate(-100%,-100%)}
+.bub.flip::after{left:auto;right:10px}
+.bub.below{transform:none}
+.bub.below::after{bottom:auto;top:-14px;border-top:none;border-bottom:12px solid var(--gold)}
+.bub.below.flip{transform:translateX(-100%)}
+
+/* beállítások */
+#panel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(40,28,20,.55);z-index:50}
+.card{width:min(92vw,420px);background:var(--cream);border:4px solid var(--gold);border-radius:24px;padding:20px}
+.card h2{margin:0 0 6px;font:800 24px sans-serif}
+.row{margin:14px 0}
+.row label{display:block;font-weight:700;margin-bottom:6px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:10px 4px;border:2px solid var(--gold);border-radius:12px;background:#fff;color:var(--brown);font:600 15px sans-serif;cursor:pointer}
+.seg button.on{background:var(--gold);color:#fff}
+.act{width:100%;margin-top:10px;padding:13px;border:0;border-radius:12px;background:var(--gold);color:#fff;font:700 16px sans-serif;cursor:pointer}
+.act.close{background:#fff;color:var(--brown);border:2px solid var(--gold)}
+#toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);padding:12px 20px;border-radius:14px;background:var(--brown);color:#fff;font:700 16px sans-serif;z-index:60}
+
+/* lábléc */
+#footer{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding:10px 16px 14px;font:600 13px sans-serif;color:var(--brown)}
+#footer span{opacity:.75}
+#footer img{width:56px;height:56px}
+
+/* támogatás ☕ */
+#support{margin-left:auto}
+#supportpanel{position:absolute;right:12px;top:calc(100% + 8px);z-index:40;width:min(80vw,250px);background:#fff;border:3px solid var(--gold);border-radius:16px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#supportpanel p{margin:0 0 8px;font:600 14px sans-serif;color:var(--brown)}
+#supportlinks{display:flex;flex-direction:column;gap:8px}
+#supportlinks a{display:block;padding:11px 12px;border:2px solid var(--gold);border-radius:12px;background:var(--cream);color:var(--brown);font:700 15px sans-serif;text-decoration:none}
+
+/* menü finomítás */
+#tag{margin:-8px 0 20px;font:italic 600 15px sans-serif;color:var(--brown);opacity:.85}
+.tile.soon{position:relative;opacity:.8}
+.tile.soon::after{content:"SOON";position:absolute;top:8px;right:10px;padding:3px 7px;border-radius:999px;background:var(--gold);color:#fff;font:800 10px sans-serif;letter-spacing:1px}
+@media (max-height:700px){
+  #logo{font-size:36px;margin:12px 0 18px}
+  .tile{padding:12px 8px}
+  .tile b{font-size:34px}
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <button id="gear" class="round" aria-label="Settings">⚙️</button>
+  <div id="mini" hidden>tal<b>King</b> Chess</div>
+  <button id="support" class="round" aria-label="Support the game" hidden>☕</button>
+  <div id="supportpanel" hidden>
+    <p>Enjoying the game? Support it:</p>
+    <div id="supportlinks"></div>
+  </div>
+</div>
+
+<div id="menu" class="screen">
+  <div id="logo">
+    <span class="g">tal</span><span class="k">K<i>👑</i></span><span class="n">ing</span>
+    <small>CHESS</small>
+  </div>
+  <p id="tag">Chess where the kings talk</p>
+  <div class="grid">
+    <button class="tile soon" data-go="soon"><b>⚔️</b><span>Versus</span></button>
+    <button class="tile soon" data-go="soon"><b>🧠⚡</b><span>Training</span></button>
+    <button class="tile" data-go="game"><b>🐋</b><span>Whale (AI)</span></button>
+    <button class="tile soon" data-go="soon"><b>🛡️</b><span>Alliance</span></button>
+    <button class="tile wide soon" data-go="soon"><b>🏛️</b><span>Academy</span></button>
+  </div>
+</div>
+
+<div id="game" class="screen" hidden>
+  <div id="status"></div>
+  <div id="wrap"><div id="board"></div></div>
+</div>
+
+<footer id="footer">
+  <span>© 2026 All rights reserved.</span>
+  <img alt="mr. B" src="data:image/png;base64,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">
+</footer>
+
+<div id="panel" hidden>
+  <div class="card">
+    <h2>Settings</h2>
+    <div class="row">
+      <label>Reactions</label>
+      <div class="seg" data-key="reactions">
+        <button data-v="0">Off</button>
+        <button data-v="0.4">Rare</button>
+        <button data-v="0.8">Normal</button>
+        <button data-v="1">Often</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Computer</label>
+      <div class="seg" data-key="level">
+        <button data-v="1">Easy</button>
+        <button data-v="2">Medium</button>
+        <button data-v="3">Hard</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Board</label>
+      <div class="seg" data-key="theme">
+        <button data-v="classic">Classic</button>
+        <button data-v="forest">Forest</button>
+        <button data-v="ocean">Ocean</button>
+      </div>
+    </div>
+    <div id="ingame" hidden>
+      <button class="act" id="newgame">New game</button>
+      <button class="act" id="tomenu">Main menu</button>
+    </div>
+    <button class="act close" id="closepanel">Close</button>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+
+<script type="module">
+// talKing Chess - © 2026 mr. B. All rights reserved.
+import { Chess } from "https://esm.sh/chess.js";
+
+// ---- beállítások ----
+const SHOW_MIN = 2.5;          // a buborék legalább ennyi másodpercig látszik
+const SHOW_MAX = 3.5;          // és legfeljebb ennyi ideig
+const GAP_SECONDS = 1;         // ennyivel később szólal meg a másik király
+const CHECK_REACTIONS = false; // sakknál "Behold!" / "Hark!" (most ki van kapcsolva)
+const PLAYER = "w";            // te vagy a világos
+
+// a fogaskerékben állítható értékek (a böngésző megjegyzi)
+const settings = { reactions: 0.8, level: 2, theme: "classic" };
+try {
+  Object.assign(settings, JSON.parse(localStorage.getItem("talking-settings") || "{}"));
+} catch (e) {}
+
+const $ = id => document.getElementById(id);
+const game = new Chess();
+const wrap = $("wrap");
+const boardEl = $("board");
+const statusEl = $("status");
+const menuEl = $("menu");
+const gameEl = $("game");
+const panel = $("panel");
+
+const G = { k:"♚", q:"♛", r:"♜", b:"♝", n:"♞", p:"♟" };
+const VAL = { p:1, n:3, b:3, r:5, q:9, k:0 };
+const EVAL = { p:100, n:320, b:330, r:500, q:900, k:0 };
+const FILES = "abcdefgh";
+let selected = null;
+let targets = [];
+let ply = 0;
+let lastSpoke = -10;
+let lastMove = null;
+let thinking = false;
+let compTimer = null;
+let centerEl = null;
+const streak = { w:false, b:false };
+
+const timers = [];
+function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+function clearBubbles() {
+  timers.splice(0).forEach(clearTimeout);
+  wrap.querySelectorAll(".bub").forEach(b => b.remove());
+}
+
+// ---- képernyők, menü, fogaskerék ----
+function show(name) {
+  menuEl.hidden = name !== "menu";
+  gameEl.hidden = name !== "game";
+  $("mini").hidden = name !== "game";
+  $("ingame").hidden = name !== "game";
+}
+
+let toastTimer = null;
+function showToast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 1600);
+}
+
+document.querySelectorAll(".tile").forEach(t => {
+  t.onclick = () => {
+    if (t.dataset.go === "game") {
+      show("game");
+      newGame();
+    } else {
+      showToast("Coming soon");
+    }
+  };
+});
+
+function applySettings() {
+  document.body.classList.remove("forest", "ocean");
+  if (settings.theme !== "classic") document.body.classList.add(settings.theme);
+  document.querySelectorAll(".seg").forEach(seg => {
+    const key = seg.dataset.key;
+    seg.querySelectorAll("button").forEach(b => {
+      b.classList.toggle("on", String(settings[key]) === b.dataset.v);
+    });
+  });
+}
+document.querySelectorAll(".seg button").forEach(b => {
+  b.onclick = () => {
+    const key = b.parentElement.dataset.key;
+    settings[key] = key === "theme" ? b.dataset.v : Number(b.dataset.v);
+    try { localStorage.setItem("talking-settings", JSON.stringify(settings)); } catch (e) {}
+    applySettings();
+  };
+});
+
+$("gear").onclick = () => { applySettings(); panel.hidden = false; };
+$("closepanel").onclick = () => { panel.hidden = true; };
+panel.onclick = e => { if (e.target === panel) panel.hidden = true; };
+$("newgame").onclick = () => { panel.hidden = true; newGame(); };
+$("tomenu").onclick = () => {
+  panel.hidden = true;
+  clearTimeout(compTimer);
+  thinking = false;
+  clearBubbles();
+  if (centerEl) { centerEl.remove(); centerEl = null; }
+  show("menu");
+};
+
+// ---- tábla rajzolása ----
+function draw() {
+  boardEl.innerHTML = "";
+  const rows = game.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const sq = FILES[c] + (8 - r);
+      const p = rows[r][c];
+      const el = document.createElement("div");
+      el.className = "sq " + ((r + c) % 2 ? "dark" : "light");
+      if (sq === selected) el.classList.add("sel");
+      if (targets.includes(sq)) el.classList.add("dot");
+      if (p) {
+        el.textContent = G[p.type] + "\uFE0E";
+        el.classList.add(p.color === "w" ? "wp" : "bp");
+      }
+      el.onclick = () => click(sq);
+      boardEl.appendChild(el);
+    }
+  }
+}
+
+function kingSquare(color) {
+  const rows = game.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = rows[r][c];
+      if (p && p.type === "k" && p.color === color) return FILES[c] + (8 - r);
+    }
+  }
+}
+
+// ---- a királyok beszélnek (buborék a király mezőjén) ----
+function say(color, text, delay = 0) {
+  const sq = kingSquare(color);
+  later(() => {
+    const c = FILES.indexOf(sq[0]);
+    const r = 8 - Number(sq[1]);
+    const flip = c >= 5;
+    const below = r >= 4;
+    const b = document.createElement("div");
+    b.className = "bub" + (flip ? " flip" : "") + (below ? " below" : "");
+    b.textContent = text;
+    b.style.left = (c + 0.5) * 12.5 + "%";
+    b.style.top = (below ? r + 0.9 : r + 0.1) * 12.5 + "%";
+    wrap.appendChild(b);
+    const secs = SHOW_MIN + Math.random() * (SHOW_MAX - SHOW_MIN);
+    later(() => b.remove(), secs * 1000);
+  }, delay * 1000);
+}
+
+// ---- üzenet a képernyő közepén ----
+function center(text) {
+  if (centerEl) centerEl.remove();
+  centerEl = document.createElement("div");
+  centerEl.textContent = text;
+  centerEl.style.cssText =
+    "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;" +
+    "background:#fff;color:#c9a227;border:4px solid #c9a227;border-radius:22px;" +
+    "padding:18px 26px;font:800 30px sans-serif;text-align:center;max-width:90%;" +
+    "box-shadow:0 8px 30px rgba(0,0,0,.5);cursor:pointer";
+  centerEl.onclick = () => { centerEl.remove(); centerEl = null; };
+  wrap.appendChild(centerEl);
+}
+// később, szövetséghez csatlakozáskor: center("Welcome to the KINGdom!");
+
+function react(m) {
+  const me = m.color;
+  const opp = me === "w" ? "b" : "w";
+  const p = settings.reactions; // 0 = kikapcsolva, 1 = mindig
+
+  if (game.isCheckmate()) {
+    const playerWon = game.turn() !== PLAYER;
+    later(() => center(playerWon ? "Glorious Victory! 🎉" : "next time... 😕"), 700);
+    return false;
+  }
+  if (p === 0) return false;
+
+  if (CHECK_REACTIONS && game.inCheck()) {
+    say(me, "Behold! 😎");
+    say(opp, "Hark! 😬", GAP_SECONDS);
+    return true;
+  }
+  if (m.flags.includes("k") || m.flags.includes("q")) {
+    say(me, "Thank you! 🙂");
+    return true;
+  }
+  if (m.captured) {
+    const prev = lastMove; // az ellenfél előző lépése
+    const isRecapture = prev && prev.captured && prev.to === m.to;
+    // nettó nyereség: ha visszaütés, levonjuk, amit az ellenfél az előbb elvett
+    const net = VAL[m.captured] - (isRecapture ? VAL[prev.captured] : 0);
+    const recapturable = game.moves({ verbose: true }).some(x => x.to === m.to && x.captured);
+    const loss = !recapturable && net >= 1;   // visszaütés nélküli veszteség
+    const bigLoss = loss && net >= 2;         // tisztvesztés
+    const combo = VAL[m.captured] > VAL[m.piece] || (streak[me] && !(prev && prev.captured));
+
+    const sayCombo = combo && Math.random() < p;
+    const sayLoss = loss && Math.random() < p;
+    if (ply - lastSpoke <= 1 || (!sayCombo && !sayLoss)) return false;
+
+    if (sayCombo) say(me, "Uh-huh! 😄");
+    if (sayLoss) say(opp, bigLoss ? "Mamma mia! 🤦" : "Ouch 😵", sayCombo ? GAP_SECONDS : 0);
+    return true;
+  }
+  return false;
+}
+
+// ---- lépés, állapot ----
+function updateStatus() {
+  if (game.isCheckmate()) {
+    statusEl.textContent = game.turn() === PLAYER ? "Checkmate - you lost" : "Checkmate - you win!";
+  } else if (game.isDraw()) {
+    statusEl.textContent = "Draw";
+  } else {
+    statusEl.textContent = game.turn() === PLAYER ? "Your move" : "Thinking...";
+  }
+}
+
+function play(from, to) {
+  clearBubbles();
+  const m = game.move({ from, to, promotion: "q" });
+  ply++;
+  draw();
+  const reacted = react(m);
+  if (reacted) lastSpoke = ply;
+  streak[m.color] = !!m.captured;
+  lastMove = m;
+  updateStatus();
+  return reacted;
+}
+
+// ---- a gép ----
+function evaluate() {
+  let s = 0;
+  for (const row of game.board()) {
+    for (const p of row) {
+      if (p) s += (p.color === "w" ? 1 : -1) * EVAL[p.type];
+    }
+  }
+  return s;
+}
+
+function search(depth, alpha, beta) {
+  if (depth === 0) return (game.turn() === "w" ? 1 : -1) * evaluate();
+  const moves = game.moves();
+  if (moves.length === 0) return game.inCheck() ? -100000 - depth : 0;
+  let best = -Infinity;
+  for (const m of moves) {
+    game.move(m);
+    const score = -search(depth - 1, -beta, -alpha);
+    game.undo();
+    if (score > best) best = score;
+    if (best > alpha) alpha = best;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+function pickMove() {
+  let best = null;
+  let bestScore = -Infinity;
+  for (const m of game.moves({ verbose: true })) {
+    game.move({ from: m.from, to: m.to, promotion: m.promotion });
+    const score = -search(settings.level - 1, -Infinity, Infinity) + Math.random() * 12;
+    game.undo();
+    if (score > bestScore) {
+      bestScore = score;
+      best = m;
+    }
+  }
+  return best;
+}
+
+function computerTurn() {
+  const m = pickMove();
+  thinking = false;
+  if (m) play(m.from, m.to);
+}
+
+// ---- kattintás ----
+function click(sq) {
+  if (thinking || game.isGameOver() || game.turn() !== PLAYER) return;
+
+  if (selected && targets.includes(sq)) {
+    const from = selected;
+    selected = null;
+    targets = [];
+    const reacted = play(from, sq);
+    if (!game.isGameOver()) {
+      thinking = true;
+      const wait = reacted ? (GAP_SECONDS + SHOW_MAX) * 1000 + 300 : 600;
+      compTimer = setTimeout(computerTurn, wait);
+    }
+    return;
+  }
+  const p = game.get(sq);
+  if (p && p.color === game.turn()) {
+    selected = sq;
+    targets = game.moves({ square: sq, verbose: true }).map(m => m.to);
+  } else {
+    selected = null;
+    targets = [];
+  }
+  draw();
+}
+
+function newGame() {
+  clearTimeout(compTimer);
+  clearBubbles();
+  if (centerEl) { centerEl.remove(); centerEl = null; }
+  game.reset();
+  selected = null;
+  targets = [];
+  ply = 0;
+  lastSpoke = -10;
+  lastMove = null;
+  thinking = false;
+  streak.w = false;
+  streak.b = false;
+  draw();
+  updateStatus();
+}
+
+applySettings();
+show("menu");
+draw();
+updateStatus();
+
+// ---- támogatás (☕) a felső sávban ----
+// Írd át a saját oldalaid címére. Amelyik még "YOUR-NAME"-et tartalmaz, az rejtve marad.
+const SUPPORT = [
+  { label: "☕ Buy Me a Coffee", url: "https://www.buymeacoffee.com/YOUR-NAME" },
+  { label: "💛 Ko-fi", url: "https://ko-fi.com/YOUR-NAME" }
+];
+const supportLinks = SUPPORT.filter(s => !s.url.includes("YOUR-NAME"));
+if (supportLinks.length) {
+  $("support").hidden = false;
+  const box = $("supportlinks");
+  supportLinks.forEach(s => {
+    const a = document.createElement("a");
+    a.href = s.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = s.label;
+    box.appendChild(a);
+  });
+  $("support").onclick = e => {
+    e.stopPropagation();
+    $("supportpanel").hidden = !$("supportpanel").hidden;
+  };
+  document.addEventListener("click", () => { $("supportpanel").hidden = true; });
+}
+</script>
+</body>
+</html>
